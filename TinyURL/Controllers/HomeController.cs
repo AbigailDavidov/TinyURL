@@ -11,6 +11,7 @@ using TinyURL.Models;
 using TinyURL.App;
 using MongoDB.Driver;
 using MongoDB.Bson;
+using System.IO;
 
 namespace TinyURL.Controllers
 {
@@ -41,7 +42,16 @@ namespace TinyURL.Controllers
             var collection = client.GetDatabase("TinyUrl").GetCollection<BsonDocument>("urls");
             var builder_filter = Builders<BsonDocument>.Filter;
             var filterByURL = builder_filter.Eq("URL", url);
-            var cache = new MemoryCache("urlCache");
+            BsonDocument doc = new BsonDocument();
+            var builder_proj = Builders<BsonDocument>.Projection;
+            var proj = builder_proj.Exclude("_id").Exclude("Created");
+            List<BsonDocument> docs = collection.Find(doc).Project(proj).ToList();
+            for (int i = 0; i < docs.Count && i < 1024 ; i++)
+                {
+                TinyUrl trl = Newtonsoft.Json.JsonConvert.DeserializeObject<TinyUrl>(docs[i].ToJson());
+                if (Convert.ToDateTime(trl.Created)> DateTime.Now.AddHours(-1))
+                    cache.Add(trl.URL, trl.ShortenedURL, new DateTimeOffset(DateTime.Now.AddHours(1)));
+            }
             try
             {
                 if (!url.Contains("http"))

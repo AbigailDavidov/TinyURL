@@ -10,7 +10,7 @@ namespace TinyURL.App
 {
 	public class TinyUrl
 	{
-		public Guid ID { get; set; }
+//		public string _id { get; set; }
 		public string URL { get; set; }
 		public string ShortenedURL { get; set; }
 		public string Token { get; set; }
@@ -34,18 +34,17 @@ namespace TinyURL.App
 			Token = urlsafe.Substring(new Random().Next(0, urlsafe.Length), new Random().Next(2, 6));
 			return this;
 		}
+
 		public Shortener(string url, MemoryCache cache)
-		{
-		
+		{		
 			var client = new MongoClient();
 			var collection = client.GetDatabase("TinyUrl").GetCollection<BsonDocument>("urls");
 			var builder_filter = Builders<BsonDocument>.Filter;
 			var filterByURL = builder_filter.Eq("URL", url);
-			if (collection.Find(filterByURL).Count() > 0)
+			if (cache.Contains(url))
 				throw new Exception("URL already exists");
 			// If the token exists in our DB we want generate a new one
-			var token = GenerateToken().Token;
-			
+			var token = GenerateToken().Token;			
 			while (collection.Find(builder_filter.Eq("Token", token)).Count() > 0) token = GenerateToken().Token;
 			// Store the values in the TinyURL model
 			biturl = new TinyUrl()
@@ -57,6 +56,7 @@ namespace TinyURL.App
 			BsonDocument doc = new BsonDocument().Add("Token", biturl.Token);
 			doc.Add("URL", biturl.URL);
 			doc.Add("ShortenedURL", biturl.ShortenedURL);
+			doc.Add("Created", biturl.Created);
 			// Save the TinyURL model to the DB
 			collection.InsertOne(doc);
 			

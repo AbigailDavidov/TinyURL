@@ -41,11 +41,12 @@ namespace TinyURL.App
 			var collection = client.GetDatabase("TinyUrl").GetCollection<BsonDocument>("urls");
 			var builder_filter = Builders<BsonDocument>.Filter;
 			var filterByURL = builder_filter.Eq("URL", url);
+			// Checks first the cache if doesn't exist there checks in DB
 			if (cache.Contains(url) || collection.Find(filterByURL).Count() > 0)
 				throw new Exception("URL already exists");
-			// If the token exists in our DB we want generate a new one
+			// If the token exists we want generate a brand new one
 			var token = GenerateToken().Token;			
-			while (collection.Find(builder_filter.Eq("Token", token)).Count() > 0) token = GenerateToken().Token;
+			while (cache.Contains(token) || collection.Find(builder_filter.Eq("Token", token)).Count() > 0) token = GenerateToken().Token;
 			// Store the values in the TinyURL model
 			biturl = new TinyUrl()
 			{
